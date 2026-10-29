@@ -440,6 +440,17 @@
 	flex: 1 1 auto;
 }
 
+/* Prep's played toggle (Scenes): a played row dims and strikes through, like
+   run mode's done scenes. */
+.strong-start-list-row-done-toggle[aria-pressed="true"] {
+	color: var(--text-success);
+}
+
+.strong-start-list-row.is-done .strong-start-list-row-input {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
 .strong-start-list-row-detail-toggle.has-detail {
 	color: var(--text-accent);
 }

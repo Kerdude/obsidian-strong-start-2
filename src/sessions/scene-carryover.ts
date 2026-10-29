@@ -25,6 +25,18 @@ export function carryScenesContent(priorBody: string): string {
 	return renderTaskBulletRows(unplayedScenes(priorBody));
 }
 
+/** "Bring over unplayed" for an existing session: the prior body's unplayed
+ * rows minus any whose text the current list already has (trimmed,
+ * case-insensitive), so pressing it twice never duplicates. */
+export function scenesToBringOver(priorBody: string, currentTexts: readonly string[]): TaskRow[] {
+	const have = new Set(currentTexts.map(sceneKey));
+	return unplayedScenes(priorBody).filter((row) => !have.has(sceneKey(row.text)));
+}
+
+function sceneKey(text: string): string {
+	return text.trim().toLowerCase();
+}
+
 /** The session scene carry-over reads from: highest session number, same
  * tie-break as secret carry-over (later `date`, then later `path`). */
 export function latestSession(sessions: readonly SessionModel[]): SessionModel | null {

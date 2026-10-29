@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carryScenesContent, latestSession, unplayedScenes } from "../src/sessions/scene-carryover";
+import { carryScenesContent, latestSession, scenesToBringOver, unplayedScenes } from "../src/sessions/scene-carryover";
 import type { SessionModel } from "../src/sessions/types";
 
 function session(overrides: Partial<SessionModel> & Pick<SessionModel, "path" | "session">): SessionModel {
@@ -46,6 +46,19 @@ describe("carryScenesContent", () => {
 
 	it("is empty when every scene was played", () => {
 		expect(carryScenesContent(body("- [x] One\n- [x] Two"))).toBe("");
+	});
+});
+
+describe("scenesToBringOver", () => {
+	it("skips scenes the current list already has, ignoring case and spacing", () => {
+		const rows = scenesToBringOver(body("- [ ] The bridge\n- [ ] Kobold toll\n- [x] Played"), ["  the BRIDGE "]);
+		expect(rows.map((r) => r.text)).toEqual(["Kobold toll"]);
+	});
+
+	it("is empty on a second press", () => {
+		const prior = body("- [ ] The bridge\n- [ ] Kobold toll");
+		const first = scenesToBringOver(prior, []);
+		expect(scenesToBringOver(prior, first.map((r) => r.text))).toEqual([]);
 	});
 });
 

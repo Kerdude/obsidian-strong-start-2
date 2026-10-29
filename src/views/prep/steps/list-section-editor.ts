@@ -39,11 +39,14 @@ export interface ListSectionOptions {
 	heading: string;
 	placeholder: string;
 	hint: string;
-	/** Round-trip `- [ ]`/`- [x]` done flags without ever exposing a done
-	 * checkbox in this editor — it only ever edits row text; run mode owns
-	 * toggling done. Defaults to false: Rewards has no done concept and stays
-	 * on plain `-` bullets (docs/plan.md M6). */
+	/** Round-trip `- [ ]`/`- [x]` done flags. Without `withDoneToggle` the
+	 * editor only edits row text and run mode owns toggling done. Defaults to
+	 * false: Rewards has no done concept and stays on plain `-` bullets
+	 * (docs/plan.md M6). */
 	taskAware?: boolean;
+	/** Per-row played/done toggle, so prep can mark scenes played after the
+	 * fact (scene carry-over keys off it). Requires `taskAware`. Scenes only. */
+	withDoneToggle?: boolean;
 	/** Optional roll affordance shown beside any currently-empty row — the
 	 * uniform suggestion chip (Insert/Reroll/×), never auto-filling
 	 * (AGENTS.md "Rolls never auto-insert"). Foundation's Six truths editor
@@ -72,6 +75,12 @@ export interface ListSectionEditorHandle {
 	 * one-liner directly rather than routing through a text input. Replaces a
 	 * lone empty placeholder row instead of leaving a blank row above it. */
 	addRow(text: string): void;
+	/** Append whole rows (done flag and detail included) and commit — used by
+	 * the Scenes step's "Bring over unplayed". Same lone-empty-row replacement
+	 * as `addRow`. */
+	addRows(newRows: readonly TaskRow[]): void;
+	/** Current row texts, for callers that dedupe before `addRows`. */
+	rowTexts(): string[];
 }
 
 function parse(content: string, taskAware: boolean): { rows: TaskRow[]; malformed: boolean } {
@@ -101,12 +110,13 @@ export function renderListSectionEditor(
 ): ListSectionEditorHandle {
 	const taskAware = options.taskAware ?? false;
 	const withDetail = (options.withDetail ?? false) && taskAware;
+	const withDoneToggle = (options.withDoneToggle ?? false) && taskAware;
 	const parsed = parse(sectionContent(body, options.heading), taskAware);
 
 	if (parsed.malformed) {
 		renderMalformedBanner(container, ctx, options.heading);
 		// No rows to append to — the banner's "Open note" is the only affordance.
-		return { addRow: () => {} };
+		return { addRow: () => {}, addRows: () => {}, rowTexts: () => [] };
 	}
 
 	let rows: EditorRow[] = parsed.rows.length > 0 ? parsed.rows : [{ text: "", done: false }];
@@ -126,7 +136,27 @@ export function renderListSectionEditor(
 		listEl.empty();
 
 		rows.forEach((row, index) => {
-			const rowEl = listEl.createDiv({ cls: "strong-start-list-row" });
+			const rowEl = listEl.createDiv({
+				cls: `strong-start-list-row${withDoneToggle && row.done ? " is-done" : ""}`,
+			});
+			if (withDoneToggle) {
+				const doneBtn = rowEl.createEl("button", {
+					cls: "strong-start-icon-button strong-start-list-row-done-toggle",
+					attr: {
+						"aria-label": row.done ? "Played — mark unplayed" : "Mark played",
+						"aria-pressed": row.done ? "true" : "false",
+						type: "button",
+					},
+				});
+				setIcon(doneBtn, row.done ? "check-circle-2" : "circle");
+				doneBtn.disabled = row.text.trim().length === 0;
+				ctx.registerDomEvent(doneBtn, "click", () => {
+					rows[index] = { ...rows[index], done: !rows[index].done };
+					focusIndex = null;
+					rebuildRows();
+					commit();
+				});
+			}
 			const input = rowEl.createEl("input", {
 				type: "text",
 				cls: "strong-start-list-row-input",
@@ -272,6 +302,18 @@ export function renderListSectionEditor(
 			focusIndex = null;
 			rebuildRows();
 			commit();
+		},
+		addRows(newRows: readonly TaskRow[]): void {
+			const additions = newRows.filter((row) => row.text.trim().length > 0).map((row) => ({ ...row }));
+			if (additions.length === 0) return;
+			const kept = rows.length === 1 && rows[0].text.trim().length === 0 ? [] : rows;
+			rows = [...kept, ...additions];
+			focusIndex = null;
+			rebuildRows();
+			commit();
+		},
+		rowTexts(): string[] {
+			return rows.map((row) => row.text);
 		},
 	};
 }
