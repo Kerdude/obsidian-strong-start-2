@@ -1,6 +1,7 @@
-// Pure — no `obsidian` import. Optional scene carry-over between sessions
-// (setting `carryScenes`): unplayed scenes from the latest session seed the
-// next one's Scenes section.
+// Pure — no `obsidian` import. Optional scene carry-over between sessions:
+// the `scene-carryover` feature (prep's played toggle + "Bring over
+// unplayed"), and on top of it the `carryScenes` setting, which seeds each new
+// session's Scenes with the latest session's unplayed rows.
 //
 // Unlike secrets (carryover.ts), scenes have no ids and no history — they're
 // body bullets — so this only ever looks at the single latest prior session.
@@ -9,7 +10,21 @@
 
 import { parseTaskBulletSection, renderTaskBulletRows, type TaskRow } from "./bullet-list";
 import { sectionContent } from "../lib/sections";
+import { featureEnabled } from "../features";
+import type { LazyCampaignPluginSettings } from "../settings/settings";
 import type { SessionModel } from "./types";
+
+type CarrySettings = Pick<LazyCampaignPluginSettings, "disabledFeatures" | "carryScenes">;
+
+/** The feature switch: prep's played toggle and "Bring over unplayed". */
+export function sceneCarryEnabled(settings: CarrySettings): boolean {
+	return featureEnabled(settings, "scene-carryover");
+}
+
+/** Automatic carry at session creation — needs the feature on as well. */
+export function autoCarryScenes(settings: CarrySettings): boolean {
+	return sceneCarryEnabled(settings) && settings.carryScenes;
+}
 
 /** The not-done rows (detail blocks included) of a session body's Scenes
  * section. Done flags never carry — every carried row is a fresh `- [ ]`. */

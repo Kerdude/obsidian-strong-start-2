@@ -1,15 +1,18 @@
 import { Notice, setIcon, TFile } from "obsidian";
 import { renderListSectionEditor } from "./list-section-editor";
 import { sectionEditorCtxFrom } from "./section-editor-ctx";
-import { latestSession, scenesToBringOver } from "../../../sessions/scene-carryover";
+import { latestSession, sceneCarryEnabled, scenesToBringOver } from "../../../sessions/scene-carryover";
 import type { StepContext } from "../step-context";
 
 export function renderScenesStep(container: HTMLElement, ctx: StepContext): void {
+	// Off: no played toggle, no "Bring over unplayed" — the step is exactly
+	// what it was before scene carry-over existed.
+	const carryOn = sceneCarryEnabled(ctx.plugin.settings);
 	// The session just before this one — "Bring over unplayed" pulls from it
 	// (scene-carryover.ts), the manual counterpart to the carryScenes setting.
-	const prior = latestSession(
-		ctx.sessions.filter((s) => s.path !== ctx.session.path && s.session < ctx.session.session)
-	);
+	const prior = carryOn
+		? latestSession(ctx.sessions.filter((s) => s.path !== ctx.session.path && s.session < ctx.session.session))
+		: null;
 
 	const headerRow = container.createDiv({ cls: "strong-start-secret-section-header" });
 	headerRow.createEl("h3", { text: "Outline potential scenes" });
@@ -28,11 +31,14 @@ export function renderScenesStep(container: HTMLElement, ctx: StepContext): void
 		stepId: "scenes",
 		heading: "Scenes",
 		placeholder: "A scene…",
-		hint: "3–8 is plenty — they'll go off-script anyway. Tick a scene once it's played; unticked ones can carry to the next session.",
-		// Run mode toggles scenes done one-tap (`- [ ]`/`- [x]`, M6); prep can
-		// too, so scenes played without Run mode can still be marked.
+		hint: carryOn
+			? "3–8 is plenty — they'll go off-script anyway. Tick a scene once it's played; unticked ones can carry to the next session."
+			: "3–8 is plenty — they'll go off-script anyway.",
+		// Run mode toggles scenes done one-tap (`- [ ]`/`- [x]`, M6); with scene
+		// carry-over on, prep can too, so scenes played without Run mode can
+		// still be marked.
 		taskAware: true,
-		withDoneToggle: true,
+		withDoneToggle: carryOn,
 		// Per-scene detail block (run-screen redesign): the indented text run
 		// mode expands under the scene's chevron.
 		withDetail: true,

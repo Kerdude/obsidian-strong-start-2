@@ -4,7 +4,7 @@ import { beginSelfWrite } from "../lib/self-write";
 import { toSafeFilename } from "../lib/slug";
 import { replaceSection } from "../lib/sections";
 import { carryForward } from "./carryover";
-import { carryScenesContent, latestSession } from "./scene-carryover";
+import { autoCarryScenes, carryScenesContent, latestSession } from "./scene-carryover";
 import { readSessionFm, sessionBodyScaffold, writeSessionFm, type SessionFm } from "./session-schema";
 import type { Secret, SessionModel } from "./types";
 import type { CampaignModel } from "../campaigns/types";
@@ -20,8 +20,8 @@ import type { LazyCampaignPluginSettings } from "../settings/settings";
  *
  * Secrets seed from `carryForward(existing)` (src/sessions/carryover.ts) —
  * every existing session is necessarily "prior" to the one being created.
- * With `settings.carryScenes`, Scenes seed from the latest session's unplayed
- * rows (src/sessions/scene-carryover.ts).
+ * With `autoCarryScenes(settings)`, Scenes seed from the latest session's
+ * unplayed rows (src/sessions/scene-carryover.ts).
  */
 export async function createNextSession(
 	app: App,
@@ -38,7 +38,7 @@ export async function createNextSession(
 	}
 
 	let body = sessionBodyScaffold();
-	if (settings.carryScenes) {
+	if (autoCarryScenes(settings)) {
 		const carried = await carriedScenes(app, existing);
 		if (carried.length > 0) body = replaceSection(body, "Scenes", carried);
 	}

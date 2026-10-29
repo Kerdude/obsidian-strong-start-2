@@ -1,7 +1,8 @@
-import { normalizePath, Notice, type App, PluginSettingTab, Setting } from "obsidian";
+import { normalizePath, Notice, type App, PluginSettingTab, Setting, type ToggleComponent } from "obsidian";
 import type LazyCampaignPlugin from "../../main";
 import { DEFAULT_SETTINGS } from "./settings";
 import { FEATURES, featureEnabled } from "../features";
+import { sceneCarryEnabled } from "../sessions/scene-carryover";
 import {
 	ATTRIBUTION_TEXT,
 	ATTRIBUTION_URL,
@@ -39,17 +40,26 @@ export class LazyCampaignPluginSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
-			.setName("Carry unplayed scenes")
-			.setDesc(
-				"New sessions start with the latest session's unchecked scenes, the same way unrevealed secrets carry over."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.carryScenes).onChange(async (value) => {
-					this.plugin.settings.carryScenes = value;
-					await this.plugin.persist();
-				})
+		const carrySetting = new Setting(containerEl).setName("Carry unplayed scenes");
+		const carry: { toggle?: ToggleComponent } = {};
+		carrySetting.addToggle((toggle) => {
+			carry.toggle = toggle;
+			toggle.setValue(this.plugin.settings.carryScenes).onChange(async (value) => {
+				this.plugin.settings.carryScenes = value;
+				await this.plugin.persist();
+			});
+		});
+		// Depends on the Scene carry-over feature below; re-run when it flips.
+		const syncCarrySetting = (): void => {
+			const enabled = sceneCarryEnabled(this.plugin.settings);
+			carrySetting.setDesc(
+				enabled
+					? "New sessions start with the latest session's unchecked scenes, the same way unrevealed secrets carry over."
+					: "Turn on the Scene carry-over feature below to use this."
 			);
+			carry.toggle?.setDisabled(!enabled);
+		};
+		syncCarrySetting();
 
 		new Setting(containerEl).setName("Features").setHeading();
 
@@ -67,6 +77,7 @@ export class LazyCampaignPluginSettingTab extends PluginSettingTab {
 						// Feature-gated UI (5e drawer, solo tables, session-zero
 						// tab) must follow the toggle while the view is open.
 						this.plugin.notifyFeaturesChanged();
+						if (feature.id === "scene-carryover") syncCarrySetting();
 					})
 				);
 		}

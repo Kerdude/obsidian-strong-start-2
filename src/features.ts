@@ -32,6 +32,12 @@ export const FEATURES: readonly FeatureDescriptor[] = [
 		description:
 			"The Lazy Solo 5e oracle tables (chamber events, monument effects, treasures) in the tables panel, plus the solo procedure in Help.",
 	},
+	{
+		id: "scene-carryover",
+		label: "Scene carry-over",
+		description:
+			"Mark scenes played in prep, and bring unplayed scenes over from the previous session. Needed for \"Carry unplayed scenes\".",
+	},
 ];
 
 /**

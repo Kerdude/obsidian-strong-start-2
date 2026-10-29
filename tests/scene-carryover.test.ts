@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { carryScenesContent, latestSession, scenesToBringOver, unplayedScenes } from "../src/sessions/scene-carryover";
+import {
+	autoCarryScenes,
+	carryScenesContent,
+	latestSession,
+	sceneCarryEnabled,
+	scenesToBringOver,
+	unplayedScenes,
+} from "../src/sessions/scene-carryover";
 import type { SessionModel } from "../src/sessions/types";
 
 function session(overrides: Partial<SessionModel> & Pick<SessionModel, "path" | "session">): SessionModel {
@@ -59,6 +66,21 @@ describe("scenesToBringOver", () => {
 		const prior = body("- [ ] The bridge\n- [ ] Kobold toll");
 		const first = scenesToBringOver(prior, []);
 		expect(scenesToBringOver(prior, first.map((r) => r.text))).toEqual([]);
+	});
+});
+
+describe("feature gating", () => {
+	it("is on by default, with automatic carry still opt-in", () => {
+		const settings = { disabledFeatures: [], carryScenes: false };
+		expect(sceneCarryEnabled(settings)).toBe(true);
+		expect(autoCarryScenes(settings)).toBe(false);
+		expect(autoCarryScenes({ ...settings, carryScenes: true })).toBe(true);
+	});
+
+	it("turning the feature off also stops automatic carry", () => {
+		const settings = { disabledFeatures: ["scene-carryover"], carryScenes: true };
+		expect(sceneCarryEnabled(settings)).toBe(false);
+		expect(autoCarryScenes(settings)).toBe(false);
 	});
 });
 
