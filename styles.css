@@ -1520,6 +1520,25 @@
 	cursor: var(--cursor-link);
 }
 
+/* Wrap long scene text instead of overflowing the row. Scoped under the list
+   (and `button.`) so it outranks Obsidian's default button height/nowrap. */
+.strong-start-run-scene-list .strong-start-run-scene-row {
+	min-width: 0;
+}
+
+.strong-start-run-scene-list button.strong-start-run-scene-toggle {
+	min-width: 0;
+	height: auto;
+	justify-content: flex-start;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.strong-start-run-scene-list .strong-start-run-scene-text {
+	min-width: 0;
+	white-space: normal;
+}
+
 /* Keep the scene text clear of the overlaid chevron. `has-detail` is set by
    the panel when it creates the chevron (a :has() here trips the store lint). */
 .strong-start-run-scene-row.has-detail .strong-start-run-scene-toggle {
