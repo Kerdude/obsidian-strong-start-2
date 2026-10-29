@@ -39,6 +39,18 @@ export class LazyCampaignPluginSettingTab extends PluginSettingTab {
 					})
 			);
 
+		new Setting(containerEl)
+			.setName("Carry unplayed scenes")
+			.setDesc(
+				"New sessions start with the latest session's unchecked scenes, the same way unrevealed secrets carry over."
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.carryScenes).onChange(async (value) => {
+					this.plugin.settings.carryScenes = value;
+					await this.plugin.persist();
+				})
+			);
+
 		new Setting(containerEl).setName("Features").setHeading();
 
 		for (const feature of FEATURES) {

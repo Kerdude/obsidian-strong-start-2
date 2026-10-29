@@ -6,6 +6,9 @@ export interface EndSessionModalOptions {
 	tallies: RunTallies;
 	/** The session number that would come next — for the carry-forward notice. */
 	nextSessionNumber: number;
+	/** Unplayed scenes that will seed the next session — 0 when scene carry
+	 * is off or this isn't the latest session (scene-carryover.ts). */
+	sceneCarryCount: number;
 	/** Called with the (possibly empty) recap text and the (possibly empty)
 	 * stars/wishes answers on "End session". */
 	onSubmit: (recapText: string, stars: string, wishes: string) => void | Promise<void>;
@@ -74,6 +77,16 @@ export class EndSessionModal extends FormModal {
 			this.contentEl.createEl("p", {
 				cls: "strong-start-hint",
 				text: `${t.carryCount} unrevealed secret${t.carryCount === 1 ? "" : "s"} will carry to session ${
+					this.options.nextSessionNumber
+				}.`,
+			});
+		}
+
+		const sceneCarry = this.options.sceneCarryCount;
+		if (sceneCarry > 0) {
+			this.contentEl.createEl("p", {
+				cls: "strong-start-hint",
+				text: `${sceneCarry} unplayed scene${sceneCarry === 1 ? "" : "s"} will carry to session ${
 					this.options.nextSessionNumber
 				}.`,
 			});

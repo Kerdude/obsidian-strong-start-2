@@ -2,9 +2,11 @@ import { Notice, normalizePath, TFile, type App } from "obsidian";
 import { mutateLazyFrontmatter, writeLazyFrontmatter } from "../lib/frontmatter";
 import { beginSelfWrite } from "../lib/self-write";
 import { toSafeFilename } from "../lib/slug";
+import { replaceSection } from "../lib/sections";
 import { carryForward } from "./carryover";
+import { carryScenesContent, latestSession } from "./scene-carryover";
 import { readSessionFm, sessionBodyScaffold, writeSessionFm, type SessionFm } from "./session-schema";
-import type { Secret } from "./types";
+import type { Secret, SessionModel } from "./types";
 import type { CampaignModel } from "../campaigns/types";
 import type { CampaignStore } from "../campaigns/campaign-store";
 import type { LazyCampaignPluginSettings } from "../settings/settings";
@@ -13,16 +15,17 @@ import type { LazyCampaignPluginSettings } from "../settings/settings";
  * Create the next-numbered session note for `campaign` (number = highest
  * existing session + 1, or 1 if there are none yet) and return the file.
  *
- * `settings` isn't used yet — session paths are always `<campaign folder>/Sessions/`,
- * a fixed subfolder name (AGENTS.md) — it's threaded through so a future
- * per-campaign override doesn't have to change every call site.
+ * Session paths are always `<campaign folder>/Sessions/`, a fixed subfolder
+ * name (AGENTS.md).
  *
  * Secrets seed from `carryForward(existing)` (src/sessions/carryover.ts) —
  * every existing session is necessarily "prior" to the one being created.
+ * With `settings.carryScenes`, Scenes seed from the latest session's unplayed
+ * rows (src/sessions/scene-carryover.ts).
  */
 export async function createNextSession(
 	app: App,
-	_settings: LazyCampaignPluginSettings,
+	settings: LazyCampaignPluginSettings,
 	campaign: CampaignModel,
 	store: CampaignStore
 ): Promise<TFile> {
@@ -34,8 +37,14 @@ export async function createNextSession(
 		await app.vault.createFolder(folderPath);
 	}
 
+	let body = sessionBodyScaffold();
+	if (settings.carryScenes) {
+		const carried = await carriedScenes(app, existing);
+		if (carried.length > 0) body = replaceSection(body, "Scenes", carried);
+	}
+
 	const filePath = normalizePath(`${folderPath}/Session ${nextNumber}.md`);
-	const file = await app.vault.create(filePath, sessionBodyScaffold());
+	const file = await app.vault.create(filePath, body);
 
 	const model: SessionFm = {
 		campaign: `[[${campaign.name}]]`,
@@ -53,6 +62,17 @@ export async function createNextSession(
 	await writeLazyFrontmatter(app, file, writeSessionFm(model));
 
 	return file;
+}
+
+/** Rendered unplayed scenes from the latest existing session, or "" if there
+ * is none (or its note is gone). Reads the file itself, not `metadataCache` —
+ * the body isn't cached there, and a just-checked scene must not carry. */
+async function carriedScenes(app: App, existing: readonly SessionModel[]): Promise<string> {
+	const latest = latestSession(existing);
+	if (!latest) return "";
+	const file = app.vault.getFileByPath(latest.path);
+	if (!(file instanceof TFile)) return "";
+	return carryScenesContent(await app.vault.read(file));
 }
 
 function parentPath(filePath: string): string {

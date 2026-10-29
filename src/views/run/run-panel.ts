@@ -4,6 +4,7 @@ import { replaceSection, sectionContent } from "../../lib/sections";
 import { parseTaskBulletSection, renderTaskBulletRows, type TaskRow } from "../../sessions/bullet-list";
 import { toSessionFm, writeSessionFm } from "../../sessions/session-schema";
 import { deriveRunTallies } from "../../sessions/run-derive";
+import { latestSession } from "../../sessions/scene-carryover";
 import { revealSecret, unrevealSecret } from "../../sessions/secrets-ops";
 import { patchSessionSecrets } from "../../sessions/session-files";
 import { writeLazyFrontmatter } from "../../lib/frontmatter";
@@ -1043,9 +1044,16 @@ export class RunPanel {
 		const store = this.view.plugin.store;
 		const all = store && this.campaign ? store.sessionsOf(this.campaign.path) : [session];
 		const nextSessionNumber = Math.max(...all.map((s) => s.session)) + 1;
+		// Scenes only carry from the latest session, so re-running an older
+		// one shows no scene notice.
+		const sceneCarryCount =
+			this.view.plugin.settings.carryScenes && latestSession(all)?.path === session.path
+				? tallies.scenesTotal - tallies.scenesDone
+				: 0;
 		new EndSessionModal(this.view.app, {
 			tallies,
 			nextSessionNumber,
+			sceneCarryCount,
 			onSubmit: (recapText, stars, wishes) => this.handleEndSession(session, recapText, stars, wishes),
 		}).open();
 	}
