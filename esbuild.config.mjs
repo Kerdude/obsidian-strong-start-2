@@ -22,7 +22,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)));
 // name is unambiguous in Obsidian's switcher/CLI on machines with several
 // plugin repos, each of which has its own scratch vault.
 const VAULT = process.env.STRONG_START_VAULT || join(REPO_ROOT, "lazy-dev-vault");
-const PLUGIN_DIR = join(VAULT, ".obsidian", "plugins", "strong-start");
+const PLUGIN_DIR = join(VAULT, ".obsidian", "plugins", "strong-start-2");
 const ARTIFACTS = ["main.js", "manifest.json", "styles.css"];
 
 const deployPlugin = {

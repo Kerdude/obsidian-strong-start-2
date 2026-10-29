@@ -16,7 +16,7 @@ import { TablesPanel } from "./tables/tables-panel";
 import { SecretsPanel } from "./secrets/secrets-panel";
 import { HelpPanel } from "./help-panel";
 
-export const VIEW_TYPE_LAZY = "strong-start";
+export const VIEW_TYPE_LAZY = "strong-start-2";
 
 interface Panel {
 	/** `changedPaths` is only passed on a campaign-store notification (never
